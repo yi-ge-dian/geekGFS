@@ -2,23 +2,15 @@ package main
 
 import (
 	"GeekGFS/src/pb"
-	"context"
+	ms "GeekGFS/src/server/masterserver"
 	"google.golang.org/grpc"
 	"log"
 	"net"
 )
 
-type masterServer struct {
-	pb.UnimplementedMasterServerToClientServer
-}
-
-func (s *masterServer) CreateFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
-	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
-}
-
 func main() {
 	s := grpc.NewServer()
-	pb.RegisterMasterServerToClientServer(s, &masterServer{})
+	pb.RegisterMasterServerToClientServer(s, &ms.MasterServer{})
 	listener, err := net.Listen("tcp", "127.0.0.1:8002")
 	if err != nil {
 		log.Fatal("Failed to listen to the port", err)
