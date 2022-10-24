@@ -10,6 +10,7 @@ require (
 require (
 	github.com/araddon/gou v0.0.0-20211019181548-e7d08105776c // indirect
 	github.com/bitly/go-hostpool v0.1.0 // indirect
+	github.com/gofrs/uuid v4.3.0+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/mattbaird/elastigo v0.0.0-20170123220020-2fe47fd29e4b // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect

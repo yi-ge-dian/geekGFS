@@ -6,11 +6,11 @@ import (
 
 // StatusCode 状态码
 type StatusCode struct {
-	value     int
-	exception string
+	Value     int
+	Exception string
 }
 
-// GFSConfig 状态配置
+// GFSConfig 配置
 type GFSConfig struct {
 	chunkSize            int
 	chunkServerLocations []string

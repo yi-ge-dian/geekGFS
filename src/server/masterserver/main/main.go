@@ -12,7 +12,8 @@ import (
 func main() {
 	// 日志库，六个级别，Log、Message、Info、Warn、Debug、Error
 	// 服务器运行情况:INFO、ERROR
-	// 交流信息：Message
+	// 服务器交流信息：Message
+	// 打印消息：Log
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	// grpc服务器
 	s := grpc.NewServer()
@@ -20,8 +21,8 @@ func main() {
 	gfsConfig := new(cm.GFSConfig)
 	gfsConfig.Start()
 	masterServer := new(ms.MasterServer)
-	masterServer.MasterService(masterAddressPort, gfsConfig.GetChunkServerLocations())
-	// 注册服务器段服务
+	masterServer.StartMasterService(masterAddressPort, gfsConfig.GetChunkServerLocations())
+	// 注册服务器端服务
 	pb.RegisterMasterServerToClientServer(s, masterServer)
 	listener, err := net.Listen("tcp", masterAddressPort)
 	if err != nil {
