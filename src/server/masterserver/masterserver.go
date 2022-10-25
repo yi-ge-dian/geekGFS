@@ -43,14 +43,15 @@ func (ms *MasterServer) CreateFile(ctx context.Context, req *pb.Request) (*pb.Re
 	//创建文件
 	var chunkHandle string
 	var locations []string
-	var s cm.StatusCode
-	ms.createFile(&filePath, &chunkHandle, locations, &s)
+	var code cm.StatusCode
+	ms.createFile(&filePath, &chunkHandle, locations, &code)
 
 	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
 }
 
-func (ms *MasterServer) createFile(filePath *string, chunkHandle *string, files []string, locations *cm.StatusCode) {
+func (ms *MasterServer) createFile(filePath *string, chunkHandle *string, locations []string, code *cm.StatusCode) {
 	ms.GetChunkHandle(chunkHandle)
+	ms.metadata.CreateNewFile(filePath, chunkHandle, code)
 }
 
 // ListFiles 展示文件列表

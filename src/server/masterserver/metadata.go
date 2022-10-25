@@ -51,5 +51,9 @@ func (md *MetaData) CreateNewChunk(filePath *string, prevChunkHandle *string, ch
 
 // GetLatestChunk 得到最新数据块
 func (md *MetaData) GetLatestChunk(filePath *string, latestChunk *string) {
-
+	if file, ok := md.files[*filePath]; ok {
+		if len(file.GetChunks()) > 0 {
+			file.GetChunks()
+		}
+	}
 }

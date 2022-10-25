@@ -2,7 +2,7 @@ package masterserver
 
 type File struct {
 	filePath string
-	chunks   map[string]Chunk
+	chunks   map[string]Chunk // chunkHandle to Chunk
 }
 
 func (f *File) SetFilePath(filePath string) {
