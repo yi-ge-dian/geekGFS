@@ -19,6 +19,7 @@ require (
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 	github.com/smartystreets/goconvey v1.7.2 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
 	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.3 // indirect

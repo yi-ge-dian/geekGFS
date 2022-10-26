@@ -4,12 +4,9 @@ import (
 	cm "GeekGFS/src/common"
 	"GeekGFS/src/pb"
 	"context"
-	"fmt"
-	"github.com/gofrs/uuid"
 	"github.com/sadlil/gologger"
+	"strconv"
 )
-
-//type chunkHandle string
 
 type MasterServer struct {
 	pb.UnimplementedMasterServerToClientServer
@@ -20,39 +17,57 @@ type MasterServer struct {
 
 //************************************辅助函数************************************
 
-// StartMasterService 启动 Master 服务
-func (ms *MasterServer) StartMasterService(port string, locations []string) {
-	ms.port = port
-	ms.metadata.SetLocations(locations)
+// NewMasterServer 构造函数
+func NewMasterServer(port *string, locations []string) *MasterServer {
+	return &MasterServer{port: *port, metadata: *NewMetaData(locations)}
 }
 
-// GetChunkHandle 得到 chunkHandle，形式：5b912ae9-71c1-464d-8e32-712b4b506430
-func (ms *MasterServer) GetChunkHandle(chunkHandle *string) {
-	uid, _ := uuid.NewV4()
-	fmt.Println(uid)
-	*chunkHandle = uid.String()
-}
-
-//*********************************** 业务函数************************************
+//*********************************** 业务函数 ************************************
 
 // CreateFile 创建文件
 func (ms *MasterServer) CreateFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	filePath := req.SendMessage
 	logger.Message("Command CreateFile " + filePath)
-	//创建文件
+	// 创建文件
 	var chunkHandle string
 	var locations []string
-	var code cm.StatusCode
-	ms.createFile(&filePath, &chunkHandle, locations, &code)
-
-	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
+	var statusCode cm.StatusCode
+	ms.createFile(&filePath, &chunkHandle, &locations, &statusCode)
+	// 打印状态
+	switch statusCode.Value {
+	case 0:
+		logger.Message(statusCode.Exception)
+	default:
+		logger.Warn(statusCode.Exception)
+	}
+	// 返回信息给客户端
+	if statusCode.Value != 0 {
+		return &pb.Reply{ReplyMessage: statusCode.Exception, StatusCode: strconv.Itoa(statusCode.Value)}, nil
+	}
+	replyMessage := ""
+	for i := 0; i < len(locations); i++ {
+		replyMessage = replyMessage + "|" + locations[i]
+	}
+	return &pb.Reply{ReplyMessage: replyMessage, StatusCode: strconv.Itoa(statusCode.Value)}, nil
 }
 
-func (ms *MasterServer) createFile(filePath *string, chunkHandle *string, locations []string, code *cm.StatusCode) {
-	ms.GetChunkHandle(chunkHandle)
-	ms.metadata.CreateNewFile(filePath, chunkHandle, code)
+func (ms *MasterServer) createFile(filePath *string, chunkHandle *string, locations *[]string, statusCode *cm.StatusCode) {
+	//logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	*chunkHandle = cm.GenerateChunkHandle()
+	ms.metadata.CreateNewFile(filePath, chunkHandle, statusCode)
+	if statusCode.Value != 0 {
+		return
+	}
+	files := ms.metadata.GetFiles()
+	file, ok := (*files)[*filePath]
+	if ok {
+		chunk := (*file.GetChunks())[*chunkHandle]
+		*locations = chunk.locations
+	}
 }
+
+//************************************************************************************
 
 // ListFiles 展示文件列表
 func (ms *MasterServer) ListFiles(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
