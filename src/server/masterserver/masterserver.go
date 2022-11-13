@@ -67,18 +67,26 @@ func (ms *MasterServer) createFile(filePath *string, chunkHandle *string, locati
 	}
 }
 
-//************************************************************************************
-
 // ListFiles 展示文件列表
 func (ms *MasterServer) ListFiles(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	filePath := req.SendMessage
 	logger.Message("Command ListFiles " + filePath)
+	// 存放文件
+	var files []string
+	ms.listFiles(&filePath, &files)
+	//ms
 
 	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
 }
 
-func (ms *MasterServer) listFiles(filePath *string, files []string) {
+func (ms *MasterServer) listFiles(filePath *string, files *[]string) {
+	for k, v := range ms.metadata.files {
+		if k != *filePath {
+			continue
+		}
+		*files = append(*files, v)
+	}
 
 }
 

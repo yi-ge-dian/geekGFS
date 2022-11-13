@@ -66,7 +66,7 @@ func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusC
 	f.Init()
 	md.files[*filePath] = *f
 	// 创建chunk
-	*chunkHandle = "1-" + *chunkHandle
+	*chunkHandle = "1" + *chunkHandle
 	prevChunkHandle := "-1"
 	md.CreateNewChunk(filePath, &prevChunkHandle, chunkHandle, statusCode)
 }
