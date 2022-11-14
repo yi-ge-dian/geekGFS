@@ -8,14 +8,17 @@ type StatusCode struct {
 	Exception string
 }
 
-var FileExistsValue = -1
+var FileExistsValue = -2
 var FileExistsException = errors.New("ERROR: File exists").Error()
 
-var FileNotExistsBeforeCreateChunkValue = -2
+var FileNotExistsValue = -3
+var FileNotExistsException = errors.New("ERROR: File not exists").Error()
+
+var FileNotExistsBeforeCreateChunkValue = -4
 var FileNotExistsBeforeCreateChunkException = errors.New("ERROR: File not exists before create chunk").Error()
 
-var ChunkExistsValue = -3
-var ChunkExistsException = errors.New("ERROR: File exists").Error()
+var ChunkExistsValue = -5
+var ChunkExistsException = errors.New("ERROR: Chunk exists").Error()
 
-var FilePathNotExistsValue = -4
+var FilePathNotExistsValue = -6
 var FilePathNotExistsException = errors.New("ERROR: Filepath not exists").Error()

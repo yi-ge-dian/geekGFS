@@ -1,23 +1,39 @@
 package main
 
 import (
+	cl "GeekGFS/src/client"
 	"GeekGFS/src/pb"
 	"context"
 	"github.com/sadlil/gologger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"os"
 	"time"
 )
 
+func printUsage() {
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	logger.Info("Usage:")
+	logger.Info("<command> " + " <filePath> " + "<args>(optional) ")
+	logger.Info("create filePath")
+	logger.Info("list filePath")
+	logger.Info("write filePath offset data")
+}
+
 func main() {
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	printUsage()
+	if len(os.Args) < 3 {
+		logger.Warn("输入参数过少，至少为3，请参考Usage")
+		return
+	}
 	// 日志库，六个级别，Log、Message、Info、Warn、Debug、Error
 	// 服务器运行情况: Info、Error()
 	// 服务器交流信息: Message、Warn
-	// 服务器查找Bug:  Debug
-	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	// 服务器查找Bug: Debug
 	// 1. 建立连接，端口是服务端开放的30001端口 没有证书会报错
 	masterServerSocket := "127.0.0.1:30001"
-	conn, err := grpc.Dial("127.0.0.1:30001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(masterServerSocket, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -32,20 +48,19 @@ func main() {
 
 	// 2. 调用Product.pb.go中的NewProdServiceClient方法
 	productServiceClient := pb.NewMasterServerToClientClient(conn)
-
-	// 3. 直接像调用本地方法一样调用GetProductStock方法
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+	// 3. 根据 command 调用方法
+	command := os.Args[1]
+	switch command {
+	case "create":
 
-	// todo：截取命令行参数，现在只是书写测试即可
-	_, _ = productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "/home/1.txt"})
-	_, _ = productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "//home/1.txt"})
-	_, _ = productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "/home/2.txt"})
-	resp, _ := productServiceClient.ListFiles(ctx, &pb.Request{SendMessage: "/home/"})
-	switch resp.StatusCode {
-	case "0":
-		logger.Message(resp.ReplyMessage)
-	default:
-		logger.Warn(resp.ReplyMessage)
 	}
+
+	var args string
+	for i := 3; i < len(os.Args); i++ {
+		args = args + "|" + os.Args[i]
+	}
+	// command filePath
+	cl.RunClient(os.Args[1], os.Args[2], args)
 }
