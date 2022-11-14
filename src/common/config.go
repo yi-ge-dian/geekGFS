@@ -8,7 +8,11 @@ type GFSConfig struct {
 }
 
 func NewGFSConfig(chunkSize int, chunkServerLocations []string, chunkServerRoot string) *GFSConfig {
-	return &GFSConfig{chunkSize: chunkSize, chunkServerLocations: chunkServerLocations, chunkServerRoot: chunkServerRoot}
+	return &GFSConfig{
+		chunkSize:            chunkSize,
+		chunkServerLocations: chunkServerLocations,
+		chunkServerRoot:      chunkServerRoot,
+	}
 }
 
 func (g *GFSConfig) ChunkServerLocations() []string {

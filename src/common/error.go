@@ -16,3 +16,6 @@ var FileNotExistsBeforeCreateChunkException = errors.New("ERROR: File not exists
 
 var ChunkExistsValue = -3
 var ChunkExistsException = errors.New("ERROR: File exists").Error()
+
+var FilePathNotExistsValue = -4
+var FilePathNotExistsException = errors.New("ERROR: Filepath not exists").Error()

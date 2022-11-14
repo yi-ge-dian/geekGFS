@@ -18,13 +18,12 @@ func (md *MetaData) GetFiles() *map[string]File {
 }
 
 func NewMetaData(locations []string) *MetaData {
-	return &MetaData{locations: locations}
-}
-
-func (md *MetaData) Init() {
-	md.files = make(map[string]File, 0)
-	md.chunkHandleToFile = make(map[string]File, 0)
-	md.locationDist = make(map[string][]string, 0)
+	return &MetaData{
+		locations:         locations,
+		files:             make(map[string]File, 0),
+		chunkHandleToFile: make(map[string]File, 0),
+		locationDist:      make(map[string][]string, 0),
+	}
 }
 
 // ChooseChunkServerLocations 选择存放 chunkServer的位置
@@ -55,7 +54,6 @@ func (md *MetaData) GetLatestChunkHandle(filePath *string) string {
 func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusCode *cm.StatusCode) {
 	//logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	// 如果已经创建该文件
-	md.Init()
 	if _, ok := md.files[*filePath]; ok {
 		statusCode.Value = cm.FileExistsValue
 		statusCode.Exception = cm.FileExistsException + *filePath
@@ -63,7 +61,6 @@ func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusC
 	}
 	// 插入
 	f := NewFile(filePath)
-	f.Init()
 	md.files[*filePath] = *f
 	// 创建chunk
 	*chunkHandle = "1" + *chunkHandle
@@ -72,13 +69,13 @@ func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusC
 }
 
 // CreateNewChunk 创建新的chunk
-func (md *MetaData) CreateNewChunk(filePath *string, prevChunkHandle *string, chunkHandle *string, code *cm.StatusCode) {
+func (md *MetaData) CreateNewChunk(filePath *string, prevChunkHandle *string, chunkHandle *string, statusCode *cm.StatusCode) {
 	//logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	file, ok := md.files[*filePath]
 	// 如果该文件未被创建，就来创建 chunk 是不科学的
 	if !ok {
-		code.Value = cm.FileNotExistsBeforeCreateChunkValue
-		code.Exception = cm.FileNotExistsBeforeCreateChunkException + *filePath
+		statusCode.Value = cm.FileNotExistsBeforeCreateChunkValue
+		statusCode.Exception = cm.FileNotExistsBeforeCreateChunkException + *filePath
 		return
 	}
 	// chunk不是新建的
@@ -89,8 +86,8 @@ func (md *MetaData) CreateNewChunk(filePath *string, prevChunkHandle *string, ch
 	}
 	// chunk 不是新建的并且与该文件最新的 chunkHandle 对不上号
 	if *prevChunkHandle != "-1" && latestChunkHandle != *prevChunkHandle {
-		code.Value = cm.ChunkExistsValue
-		code.Exception = cm.ChunkExistsException + *filePath + ":" + *chunkHandle
+		statusCode.Value = cm.ChunkExistsValue
+		statusCode.Exception = cm.ChunkExistsException + *filePath + ":" + *chunkHandle
 		return
 	}
 	// 创建chunk
@@ -108,6 +105,6 @@ func (md *MetaData) CreateNewChunk(filePath *string, prevChunkHandle *string, ch
 	// 更新文件信息
 	file.chunkHandleSet = append(file.chunkHandleSet, *chunkHandle)
 	// 设置状态码
-	code.Value = 0
-	code.Exception = "SUCCESS: New Chunk Created"
+	statusCode.Value = 0
+	statusCode.Exception = "SUCCESS: New Chunk Created"
 }

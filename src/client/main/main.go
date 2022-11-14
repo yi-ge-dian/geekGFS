@@ -11,18 +11,17 @@ import (
 
 func main() {
 	// 日志库，六个级别，Log、Message、Info、Warn、Debug、Error
-	// 服务器运行情况:Info、Error
-	// 服务器交流信息：Message、Warn
-	// 服务器查找Bug：Debug
-	// 打印消息：Log
+	// 服务器运行情况: Info、Error()
+	// 服务器交流信息: Message、Warn
+	// 服务器查找Bug:  Debug
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	// 1. 建立连接，端口是服务端开放的30001端口 没有证书会报错
-	masterServerTarget := "127.0.0.1:30001"
+	masterServerSocket := "127.0.0.1:30001"
 	conn, err := grpc.Dial("127.0.0.1:30001", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error(err.Error())
 	}
-	logger.Info("client connected masterServer at " + masterServerTarget)
+	logger.Info("client connected masterServer at " + masterServerSocket)
 	// 退出时关闭链接
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
@@ -38,8 +37,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	// 4. todo：截取命令行参数，现在只是书写测试即可
-	resp, _ := productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "/home/1.txt"})
+	// todo：截取命令行参数，现在只是书写测试即可
+	_, _ = productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "/home/1.txt"})
+	_, _ = productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "//home/1.txt"})
+	_, _ = productServiceClient.CreateFile(ctx, &pb.Request{SendMessage: "/home/2.txt"})
+	resp, _ := productServiceClient.ListFiles(ctx, &pb.Request{SendMessage: "/home/"})
 	switch resp.StatusCode {
 	case "0":
 		logger.Message(resp.ReplyMessage)

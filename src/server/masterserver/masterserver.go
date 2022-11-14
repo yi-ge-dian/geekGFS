@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/sadlil/gologger"
 	"strconv"
+	"strings"
 )
 
 type MasterServer struct {
@@ -75,19 +76,33 @@ func (ms *MasterServer) ListFiles(ctx context.Context, req *pb.Request) (*pb.Rep
 	// 存放文件
 	var files []string
 	ms.listFiles(&filePath, &files)
-	//ms
-
-	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
+	// 返回信息
+	var statusCode cm.StatusCode
+	replyMessage := ""
+	if len(files) == 0 {
+		statusCode.Value = cm.FilePathNotExistsValue
+		replyMessage = filePath + ":" + cm.FilePathNotExistsException
+		statusCode.Exception = replyMessage
+		return &pb.Reply{ReplyMessage: statusCode.Exception, StatusCode: strconv.Itoa(statusCode.Value)}, nil
+	}
+	for _, file := range files {
+		replyMessage = replyMessage + "|" + file
+	}
+	return &pb.Reply{ReplyMessage: replyMessage, StatusCode: "0"}, nil
 }
 
 func (ms *MasterServer) listFiles(filePath *string, files *[]string) {
-	for k, v := range ms.metadata.files {
-		if k != *filePath {
+	for k, _ := range ms.metadata.files {
+		// 长度太小，直接下次循环
+		if len(k) < len(*filePath) {
 			continue
 		}
-		*files = append(*files, v)
+		// 截取子串,符合条件的加入切片中,切片是头闭尾开
+		subK := k[0:len(*filePath)]
+		if strings.Compare(subK, *filePath) == 0 {
+			*files = append(*files, k)
+		}
 	}
-
 }
 
 // AppendFile todo
