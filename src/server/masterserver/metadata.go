@@ -13,6 +13,8 @@ type MetaData struct {
 	locationDist      map[string][]string // key: ***
 }
 
+//************************************辅助函数************************************
+
 func (md *MetaData) GetFiles() *map[string]File {
 	return &md.files
 }
@@ -28,13 +30,11 @@ func NewMetaData(locations []string) *MetaData {
 
 // ChooseChunkServerLocations 选择存放 chunkServer的位置
 func (md *MetaData) ChooseChunkServerLocations(chunkServerLocations *[]string) {
-	//logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	gfsConfig := cm.NewGFSConfig(cm.GFSChunkSize, cm.GFSChunkServerLocations, cm.GFSChunkServerRoot)
 	total := len(gfsConfig.ChunkServerLocations())
 	rand.Seed(time.Now().Unix())
 	index := rand.Int()
 	for i := 0; i < 3; i++ {
-		//logger.Debug(gfsConfig.ChunkServerLocations[(index+i)%total])
 		*chunkServerLocations = append(*chunkServerLocations, gfsConfig.ChunkServerLocations()[(index+i)%total])
 	}
 }
@@ -50,18 +50,21 @@ func (md *MetaData) GetLatestChunkHandle(filePath *string) string {
 	return "-2"
 }
 
+//*********************************** 业务函数 ************************************
+
 // CreateNewFile 创建新文件
 func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusCode *cm.StatusCode) {
-	//logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	// 生成 chunkHandle
+	*chunkHandle = cm.GenerateChunkHandle()
 	// 如果已经创建该文件
 	if _, ok := md.files[*filePath]; ok {
-		statusCode.Value = cm.FileExistsValue
-		statusCode.Exception = cm.FileExistsException + *filePath
+		statusCode.Value = "-1"
+		statusCode.Exception = "ERROR: File exists already" + *filePath
 		return
 	}
 	// 插入
-	f := NewFile(filePath)
-	md.files[*filePath] = *f
+	file := NewFile(filePath)
+	md.files[*filePath] = *file
 	// 创建chunk
 	*chunkHandle = "1" + *chunkHandle
 	prevChunkHandle := "-1"
@@ -70,41 +73,33 @@ func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusC
 
 // CreateNewChunk 创建新的chunk
 func (md *MetaData) CreateNewChunk(filePath *string, prevChunkHandle *string, chunkHandle *string, statusCode *cm.StatusCode) {
-	//logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	file, ok := md.files[*filePath]
 	// 如果该文件未被创建，就来创建 chunk 是不科学的
 	if !ok {
-		statusCode.Value = cm.FileNotExistsBeforeCreateChunkValue
-		statusCode.Exception = cm.FileNotExistsBeforeCreateChunkException + *filePath
+		statusCode.Value = "-1"
+		statusCode.Exception = "ERROR: New chunk but file doesn't exist:" + *filePath
 		return
 	}
 	// chunk不是新建的
 	latestChunkHandle := ""
 	if *prevChunkHandle != "-1" {
 		latestChunkHandle = md.GetLatestChunkHandle(filePath)
-		//logger.Debug(latestChunkHandle)
 	}
-	// chunk 不是新建的并且与该文件最新的 chunkHandle 对不上号
+	// chunk 不是新建的，并且与该文件最新的 chunkHandle 对不上号
 	if *prevChunkHandle != "-1" && latestChunkHandle != *prevChunkHandle {
-		statusCode.Value = cm.ChunkExistsValue
-		statusCode.Exception = cm.ChunkExistsException + *filePath + ":" + *chunkHandle
+		statusCode.Value = "-1"
+		statusCode.Exception = "ERROR: New chunk already created: " + *filePath + ":" + *chunkHandle
 		return
 	}
-	// 创建chunk
-	newChunk := new(Chunk)
-	chunks := file.GetChunks()
-	(*chunks)[*chunkHandle] = newChunk
-	// 拿到新创建的chunk
-	chunk := (*chunks)[*chunkHandle]
 	// 选择chunk的位置
 	var chunkServerLocations []string
 	md.ChooseChunkServerLocations(&chunkServerLocations)
-	for i := 0; i < len(chunkServerLocations); i++ {
-		chunk.locations = append(chunk.locations, chunkServerLocations[i])
-	}
+	newChunk := NewChunk(chunkServerLocations)
+	chunks := file.GetChunks()
+	(*chunks)[*chunkHandle] = newChunk
 	// 更新文件信息
 	file.chunkHandleSet = append(file.chunkHandleSet, *chunkHandle)
 	// 设置状态码
-	statusCode.Value = 0
+	statusCode.Value = "0"
 	statusCode.Exception = "SUCCESS: New Chunk Created"
 }

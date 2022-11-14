@@ -2,6 +2,11 @@ package common
 
 import "github.com/gofrs/uuid"
 
+type StatusCode struct {
+	Value     string
+	Exception string
+}
+
 const (
 	GFSChunkSize       = 64
 	GFSChunkServerRoot = "RootChunkServer"

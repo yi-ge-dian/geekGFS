@@ -1,0 +1,4 @@
+.\main.exe create "/home/1.txt"
+.\main.exe create "/home/2.txt"
+.\main.exe create "//home/3.txt"
+.\main.exe list "/home"

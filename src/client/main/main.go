@@ -24,7 +24,7 @@ func main() {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	printUsage()
 	if len(os.Args) < 3 {
-		logger.Warn("输入参数过少，至少为3，请参考Usage")
+		logger.Warn("Input too few parameters, at least 3, please refer to Usage to use")
 		return
 	}
 	// 日志库，六个级别，Log、Message、Info、Warn、Debug、Error
@@ -37,7 +37,7 @@ func main() {
 	if err != nil {
 		logger.Error(err.Error())
 	}
-	logger.Info("client connected masterServer at " + masterServerSocket)
+	logger.Info("Client connected masterServer at " + masterServerSocket)
 	// 退出时关闭链接
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
@@ -50,17 +50,30 @@ func main() {
 	productServiceClient := pb.NewMasterServerToClientClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+
 	// 3. 根据 command 调用方法
 	command := os.Args[1]
+	filePath := os.Args[2]
 	switch command {
 	case "create":
-
+		if len(os.Args) != 3 {
+			logger.Warn("Create only needs two arguments")
+		}
+		cl.CreateFile(&productServiceClient, &ctx, &filePath)
+	case "list":
+		if len(os.Args) != 3 {
+			logger.Warn("List only needs two arguments")
+		}
+		cl.ListFiles(&productServiceClient, &ctx, &filePath)
+	case "write":
+		if len(os.Args) != 5 {
+			logger.Warn("Write needs four arguments")
+		}
+		offset := os.Args[3]
+		data := ""
+		for i := 4; i < len(os.Args); i++ {
+			data = data + "|" + os.Args[i]
+		}
+		cl.WriteFile(&productServiceClient, &ctx, &filePath, &offset, &data)
 	}
-
-	var args string
-	for i := 3; i < len(os.Args); i++ {
-		args = args + "|" + os.Args[i]
-	}
-	// command filePath
-	cl.RunClient(os.Args[1], os.Args[2], args)
 }
