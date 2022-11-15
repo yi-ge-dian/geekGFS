@@ -17,7 +17,8 @@ func printUsage() {
 	logger.Info("<command> " + " <filePath> " + "<args>(optional) ")
 	logger.Info("create filePath")
 	logger.Info("list filePath")
-	logger.Info("write filePath offset data")
+	logger.Info("write filePath data")
+	logger.Info("read filePath data")
 }
 
 func main() {
@@ -66,14 +67,17 @@ func main() {
 		}
 		cl.ListFiles(&productServiceClient, &ctx, &filePath)
 	case "write":
-		if len(os.Args) != 5 {
-			logger.Warn("Write needs four arguments")
+		if len(os.Args) < 4 {
+			logger.Warn("Write at least needs 3 arguments")
 		}
-		offset := os.Args[3]
 		data := ""
-		for i := 4; i < len(os.Args); i++ {
+		for i := 3; i < len(os.Args); i++ {
 			data = data + "|" + os.Args[i]
 		}
-		cl.WriteFile(&productServiceClient, &ctx, &filePath, &offset, &data)
+		cl.WriteFile(&productServiceClient, &ctx, &filePath, &data)
+	case "read":
+		if len(os.Args) != 4 {
+
+		}
 	}
 }

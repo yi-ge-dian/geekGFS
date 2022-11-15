@@ -5,7 +5,6 @@ import (
 	"GeekGFS/src/pb"
 	"context"
 	"github.com/sadlil/gologger"
-	"strconv"
 	"strings"
 )
 
@@ -128,61 +127,80 @@ func (ms *MasterServer) WriteFile(ctx context.Context, req *pb.Request) (*pb.Rep
 	// 分割串
 	slice := strings.Split(req.SendMessage, "|")
 	filePath := slice[0]
-	offset := slice[1]
 	data := ""
-	for i := 2; i < len(slice); i++ {
+	for i := 1; i < len(slice); i++ {
 		data = data + slice[i]
 	}
-	logger.Message("Command WriteFile " + data + " to " + filePath + "offset" + offset)
+	logger.Message("Command WriteFile " + data + " to " + filePath)
 	// 定义变量，传进去
 	var statusCode cm.StatusCode
 	var chunksLocations string
 	// 核心逻辑
-	ms.writeFile(&filePath, &offset, &data, &chunksLocations, &statusCode)
+	ms.writeFile(&filePath, &data, &chunksLocations, &statusCode)
 
 	// todo 处理返回逻辑
 	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
 }
 
 // writeFile 核心逻辑
-func (ms *MasterServer) writeFile(filePath *string, offset *string, data *string, chunksLocations *string, statusCode *cm.StatusCode) {
+func (ms *MasterServer) writeFile(filePath *string, data *string, chunksLocations *string, statusCode *cm.StatusCode) {
+	// 检查文件是否有效
 	ms.checkValidFile(filePath, statusCode)
 	if statusCode.Value != "0" {
 		return
 	}
-	// 先拿到文件
-	files := ms.metadata.GetFiles()
-	file := (*files)[*filePath]
-	// 获得原始的 chunk 数量
-	chunkOriginNum := len(file.chunkHandleSet)
-	// 转成 int
-	offsetInt, _ := strconv.Atoi(*offset)
-	dataInt, _ := strconv.Atoi(*data)
-	// 根据偏移量获得在第几个chunk中，chunk内的偏移量是多少
-	chunkId := offsetInt / cm.GFSChunkSize
-	chunkOffset := offsetInt % cm.GFSChunkSize
-	// 偏移量开始的位置在已有的中间
-	if chunkId >= 0 && chunkId <= chunkOriginNum {
-		// 加上偏移量算一次
-		offsetData := offsetInt + dataInt
-		newChunkId := offsetData / cm.GFSChunkSize
-		newChunkOffset := offsetData % cm.GFSChunkSize
-		// 加上偏移量也没有超出
-
-	}
-
+	// 新加的 data 有多少chunk
 	var chunkNum int
 	if len(*data)%cm.GFSChunkSize != 0 {
 		chunkNum = len(*data)/cm.GFSChunkSize + 1
 	} else {
 		chunkNum = len(*data) / cm.GFSChunkSize
 	}
-	//chunks := file.GetChunks()
-	// 如果想要写的 chunk 数目比现在的小，直接给你我以前的数据，可能会出现跨页的情况，这种情况去 chunkServer处理，我反正只给你位置信息
-	if chunkNum <= len(file.chunkHandleSet) {
+	// 先拿到文件
+	files := ms.metadata.GetFiles()
+	file := (*files)[*filePath]
+	// 获得原始的 chunk 数量
+	prevChunkNum := len(file.chunkHandleSet)
+	// 如果新加的 chunkNum 比 原来的chunkNum 小
+	if chunkNum <= prevChunkNum {
+		// 拿到前面的位置
+		for i := 0; i < chunkNum; i++ {
+			chunkHandle := file.chunkHandleSet[i]
+			*chunksLocations = (*chunksLocations) + "|" + chunkHandle
+			chunks := file.GetChunks()
+			chunk := (*chunks)[chunkHandle]
+			for _, location := range chunk.locations {
+				*chunksLocations = (*chunksLocations) + "|" + location
+			}
+		}
+		// 移除后面的 chunk
+		for i := chunkNum; i < len(file.chunkHandleSet); i++ {
+			chunkHandle := file.chunkHandleSet[i]
+			chunks := file.GetChunks()
+			delete(*chunks, chunkHandle)
+		}
+		// 更新 chunkHandleSet
+		file.chunkHandleSet = file.chunkHandleSet[0:chunkNum]
+	} else {
+		// 新加的需要的 chunk 数目 比 原来的 chunk 数目大
+		// 直接拿走所有的原来的chunk 位置
+		for i := 0; i < prevChunkNum; i++ {
+			chunkHandle := file.chunkHandleSet[i]
+			*chunksLocations = (*chunksLocations) + "|" + chunkHandle
+			chunks := file.GetChunks()
+			chunk := (*chunks)[chunkHandle]
+			for _, location := range chunk.locations {
+				*chunksLocations = (*chunksLocations) + "|" + location
+			}
+		}
+		// 需要新加得的 chunk 数目
+		addChunkNum := chunkNum - prevChunkNum
+		addChunkIndex := 1
+		for addChunkIndex <= addChunkNum {
+
+		}
 
 	}
-
 }
 
 // AppendFile todo

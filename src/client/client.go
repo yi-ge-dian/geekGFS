@@ -33,10 +33,10 @@ func ListFiles(productServiceClient *pb.MasterServerToClientClient, ctx *context
 }
 
 // WriteFile 客户端展示文件
-func WriteFile(productServiceClient *pb.MasterServerToClientClient, ctx *context.Context, filePath *string, offset *string, data *string) {
+func WriteFile(productServiceClient *pb.MasterServerToClientClient, ctx *context.Context, filePath *string, data *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	var resp *pb.Reply
-	resp, _ = (*productServiceClient).ListFiles(*ctx, &pb.Request{SendMessage: *filePath + "|" + *offset + *data})
+	resp, _ = (*productServiceClient).ListFiles(*ctx, &pb.Request{SendMessage: *filePath + *data})
 	switch resp.StatusCode {
 	case "0":
 		logger.Message(resp.ReplyMessage)
