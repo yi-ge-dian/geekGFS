@@ -4,6 +4,7 @@ import (
 	cm "GeekGFS/src/common"
 	"GeekGFS/src/pb"
 	"context"
+	"fmt"
 	"github.com/sadlil/gologger"
 	"strconv"
 	"strings"
@@ -138,9 +139,11 @@ func (ms *MasterServer) WriteFile(ctx context.Context, req *pb.Request) (*pb.Rep
 	var chunksLocations string
 	// 核心逻辑
 	ms.writeFile(&filePath, &data, &chunksLocations, &statusCode)
-
-	// todo 处理返回逻辑
-	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
+	// 返回信息给客户端
+	if statusCode.Value != "0" {
+		return &pb.Reply{ReplyMessage: statusCode.Exception, StatusCode: statusCode.Value}, nil
+	}
+	return &pb.Reply{ReplyMessage: chunksLocations, StatusCode: statusCode.Value}, nil
 }
 
 // writeFile 核心逻辑
@@ -196,10 +199,11 @@ func (ms *MasterServer) writeFile(filePath *string, data *string, chunksLocation
 		}
 		// 需要新加得的 chunk 数目
 		addChunkNum := chunkNum - prevChunkNum
-		addChunkIndex := 1
-		for addChunkIndex <= addChunkNum {
+		for addChunkIndex := 1; addChunkIndex <= addChunkNum; addChunkIndex++ {
 			chunkHandle := strconv.Itoa(addChunkIndex+prevChunkNum) + cm.GenerateChunkHandle()
+			fmt.Println(*chunksLocations)
 			*chunksLocations = *chunksLocations + "|" + chunkHandle
+			fmt.Println(*chunksLocations)
 			var chunkServerLocations []string
 			ms.metadata.ChooseChunkServerLocations(&chunkServerLocations)
 			for _, location := range chunkServerLocations {

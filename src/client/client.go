@@ -78,25 +78,24 @@ func CreateFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *cont
 // ListFiles 客户端展示文件
 func ListFiles(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	var resp *pb.Reply
-	resp, _ = (*clientForMS).ListFiles(*clientForMSCtx, &pb.Request{SendMessage: *filePath})
-	switch resp.StatusCode {
+	masterServerReply, _ := (*clientForMS).ListFiles(*clientForMSCtx, &pb.Request{SendMessage: *filePath})
+	// 根据 masterServer 的返回码来输出信息
+	switch masterServerReply.StatusCode {
 	case "0":
-		logger.Message("Response from masterServer: " + resp.ReplyMessage)
+		logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
 	default:
-		logger.Warn(resp.ReplyMessage)
+		logger.Warn(masterServerReply.ReplyMessage)
 	}
 }
 
 // WriteFile 客户端展示文件
 func WriteFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string, data *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	var resp *pb.Reply
-	resp, _ = (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + *data})
-	switch resp.StatusCode {
+	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + *data})
+	switch masterServerReply.StatusCode {
 	case "0":
-		logger.Message(resp.ReplyMessage)
+		logger.Message(masterServerReply.ReplyMessage)
 	default:
-		logger.Warn(resp.ReplyMessage)
+		logger.Warn(masterServerReply.ReplyMessage)
 	}
 }

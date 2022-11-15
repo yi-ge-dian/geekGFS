@@ -8,22 +8,22 @@ import (
 
 type MetaData struct {
 	locations         []string            //
-	files             map[string]File     // key:filepath  value:File
-	chunkHandleToFile map[string]File     // key:chunkHandle value:File
+	files             map[string]*File    // key:filepath  value:File
+	chunkHandleToFile map[string]*File    // key:chunkHandle value:File
 	locationDist      map[string][]string // key: ***
 }
 
 //************************************辅助函数************************************
 
-func (md *MetaData) GetFiles() *map[string]File {
+func (md *MetaData) GetFiles() *map[string]*File {
 	return &md.files
 }
 
 func NewMetaData(locations []string) *MetaData {
 	return &MetaData{
 		locations:         locations,
-		files:             make(map[string]File, 0),
-		chunkHandleToFile: make(map[string]File, 0),
+		files:             make(map[string]*File, 0),
+		chunkHandleToFile: make(map[string]*File, 0),
 		locationDist:      make(map[string][]string, 0),
 	}
 }
@@ -64,7 +64,7 @@ func (md *MetaData) CreateNewFile(filePath *string, chunkHandle *string, statusC
 	}
 	// 插入
 	file := NewFile(filePath)
-	md.files[*filePath] = *file
+	md.files[*filePath] = file
 	// 创建chunk
 	*chunkHandle = "1" + *chunkHandle
 	prevChunkHandle := "-1"
