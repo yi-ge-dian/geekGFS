@@ -5,6 +5,7 @@ import (
 	"GeekGFS/src/pb"
 	"context"
 	"github.com/sadlil/gologger"
+	"strconv"
 	"strings"
 )
 
@@ -59,7 +60,7 @@ func (ms *MasterServer) CreateFile(ctx context.Context, req *pb.Request) (*pb.Re
 	if statusCode.Value != "0" {
 		return &pb.Reply{ReplyMessage: statusCode.Exception, StatusCode: statusCode.Value}, nil
 	}
-	replyMessage := ""
+	replyMessage := chunkHandle
 	for i := 0; i < len(locations); i++ {
 		replyMessage = replyMessage + "|" + locations[i]
 	}
@@ -197,10 +198,21 @@ func (ms *MasterServer) writeFile(filePath *string, data *string, chunksLocation
 		addChunkNum := chunkNum - prevChunkNum
 		addChunkIndex := 1
 		for addChunkIndex <= addChunkNum {
-
+			chunkHandle := strconv.Itoa(addChunkIndex+prevChunkNum) + cm.GenerateChunkHandle()
+			*chunksLocations = *chunksLocations + "|" + chunkHandle
+			var chunkServerLocations []string
+			ms.metadata.ChooseChunkServerLocations(&chunkServerLocations)
+			for _, location := range chunkServerLocations {
+				*chunksLocations = *chunksLocations + "|" + location
+			}
+			newChunk := NewChunk(chunkServerLocations)
+			chunks := file.GetChunks()
+			(*chunks)[chunkHandle] = newChunk
+			file.chunkHandleSet = append(file.chunkHandleSet, chunkHandle)
 		}
-
 	}
+	statusCode.Value = "0"
+	statusCode.Exception = "SUCCESS: chunksLocations " + *chunksLocations
 }
 
 // AppendFile todo

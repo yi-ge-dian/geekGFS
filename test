@@ -2,3 +2,7 @@
 .\main.exe create "/home/2.txt"
 .\main.exe create "//home/3.txt"
 .\main.exe list "/home"
+
+
+macos .unix
+./main create "/home/1.txt"
