@@ -55,6 +55,7 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *str
 		default:
 			logger.Warn(chunkServerReply.ReplyMessage)
 		}
+	case "read":
 	}
 
 }
@@ -133,6 +134,19 @@ func WriteFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *conte
 				ports = ports[0:0]
 			}
 		}
+	default:
+		logger.Warn(masterServerReply.ReplyMessage)
+	}
+}
+
+// ReadFile 读取文件
+func ReadFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string) {
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath})
+	// 根据 masterServer 的返回码来输出信息
+	switch masterServerReply.StatusCode {
+	case "0":
+		logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
 	default:
 		logger.Warn(masterServerReply.ReplyMessage)
 	}

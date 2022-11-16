@@ -199,9 +199,7 @@ func (ms *MasterServer) writeFile(filePath *string, data *string, chunksLocation
 		addChunkNum := chunkNum - prevChunkNum
 		for addChunkIndex := 1; addChunkIndex <= addChunkNum; addChunkIndex++ {
 			chunkHandle := strconv.Itoa(addChunkIndex+prevChunkNum) + cm.GenerateChunkHandle()
-			fmt.Println(*chunksLocations)
 			*chunksLocations = *chunksLocations + "|" + chunkHandle
-			fmt.Println(*chunksLocations)
 			var chunkServerLocations []string
 			ms.metadata.ChooseChunkServerLocations(&chunkServerLocations)
 			for _, location := range chunkServerLocations {
@@ -217,6 +215,42 @@ func (ms *MasterServer) writeFile(filePath *string, data *string, chunksLocation
 	statusCode.Exception = "SUCCESS: chunksLocations " + *chunksLocations
 }
 
+// ReadFile 读取文件
+func (ms *MasterServer) ReadFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	filePath := req.SendMessage
+	logger.Message("Command ReadFile " + filePath)
+	// 定义变量，传进去
+	data := ""
+	var statusCode cm.StatusCode
+	// 核心逻辑
+	ms.readFile(&filePath, &data, &statusCode)
+	// 返回信息给客户端
+	if statusCode.Value != "0" {
+		return &pb.Reply{ReplyMessage: statusCode.Exception, StatusCode: statusCode.Value}, nil
+	}
+	return &pb.Reply{ReplyMessage: data, StatusCode: statusCode.Value}, nil
+}
+
+func (ms *MasterServer) readFile(filePath *string, data *string, statusCode *cm.StatusCode) {
+	ms.checkValidFile(filePath, statusCode)
+	if statusCode.Value != "0" {
+		return
+	}
+	// 先拿到文件
+	files := ms.metadata.GetFiles()
+	file := (*files)[*filePath]
+	chunks := file.GetChunks()
+	// 拿到所有的 chunkHandle，再通过 chunkHandle 去拿 chunk
+	for _, chunkHandle := range file.chunkHandleSet {
+		chunk := (*chunks)[chunkHandle]
+		// 得到 chunk 存放的任意一个位置
+		*data = *data + "|" + chunkHandle + chunk.locations[0]
+	}
+	statusCode.Value = "0"
+	statusCode.Exception = "SUCCESS: file " + *filePath + "is read"
+}
+
 // AppendFile todo
 func (ms *MasterServer) AppendFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
@@ -224,11 +258,6 @@ func (ms *MasterServer) AppendFile(ctx context.Context, req *pb.Request) (*pb.Re
 
 // CreateChunk todo
 func (ms *MasterServer) CreateChunk(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
-	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
-}
-
-// ReadFile todo
-func (ms *MasterServer) ReadFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
 }
 

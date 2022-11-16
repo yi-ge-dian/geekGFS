@@ -18,12 +18,12 @@ import (
 
 func printUsage() {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	logger.Info("Usage:")
-	logger.Info("<command> " + " <filePath> " + "<args>(optional) ")
+	logger.Info("Usage: ")
+	logger.Info("<command> " + "<filePath> " + "<args>(optional)")
 	logger.Info("create filePath")
-	logger.Info("list filePath")
-	logger.Info("write filePath data")
-	logger.Info("read filePath data")
+	logger.Info("  list filePath")
+	logger.Info(" write filePath data")
+	logger.Info("  read filePath")
 }
 
 func main() {
@@ -80,9 +80,10 @@ func main() {
 		}
 		cl.WriteFile(&clientForMS, &clientForMSCtx, &filePath, &data)
 	case "read":
-		if len(os.Args) != 4 {
-
+		if len(os.Args) != 3 {
+			logger.Warn("Read at least needs 3 arguments")
 		}
+		cl.ReadFile(&clientForMS, &clientForMSCtx, &filePath)
 	default:
 		printUsage()
 	}
