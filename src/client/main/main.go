@@ -74,9 +74,9 @@ func main() {
 			logger.Warn("Write at least needs 3 arguments")
 			return
 		}
-		data := ""
-		for i := 3; i < len(os.Args); i++ {
-			data = data + "|" + os.Args[i]
+		data := os.Args[3]
+		for i := 4; i < len(os.Args); i++ {
+			data = data + " " + os.Args[i]
 		}
 		cl.WriteFile(&clientForMS, &clientForMSCtx, &filePath, &data)
 	case "read":

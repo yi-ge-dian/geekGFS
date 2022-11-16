@@ -126,14 +126,12 @@ func (ms *MasterServer) listFiles(filePath *string, filePaths *[]string) {
 // WriteFile 写文件
 func (ms *MasterServer) WriteFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	fmt.Println(req.SendMessage)
 	// 分割串
 	slice := strings.Split(req.SendMessage, "|")
 	filePath := slice[0]
-	data := ""
-	for i := 1; i < len(slice); i++ {
-		data = data + slice[i]
-	}
-	logger.Message("Command WriteFile " + data + " to " + filePath)
+	data := slice[1]
+	logger.Message("Command WriteFile " + data + "to " + filePath)
 	// 定义变量，传进去
 	var statusCode cm.StatusCode
 	var chunksLocations string

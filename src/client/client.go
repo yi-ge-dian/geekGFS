@@ -13,7 +13,7 @@ import (
 //************************************辅助函数************************************
 
 // SwitchChunkServer client 与 chunkServer 建立连接,并且执行逻辑
-func SwitchChunkServer(chunkServerSocket *string, command *string, chunkHandle *string) {
+func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 
 	// 1. 建立连接，端口是服务端开放的端口 没有证书会报错
@@ -38,7 +38,7 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, chunkHandle *
 	// 3. 调用方法
 	switch *command {
 	case "create":
-		chunkServerReply, _ := clientForCS.Create(clientForCSCtx, &pb.Request{SendMessage: *chunkHandle})
+		chunkServerReply, _ := clientForCS.Create(clientForCSCtx, &pb.Request{SendMessage: *sendData})
 		// 根据 chunkServer 的返回码来输出信息
 		switch chunkServerReply.StatusCode {
 		case "0":
@@ -46,8 +46,15 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, chunkHandle *
 		default:
 			logger.Warn(chunkServerReply.ReplyMessage)
 		}
-	case "list":
-
+	case "write":
+		chunkServerReply, _ := clientForCS.Write(clientForCSCtx, &pb.Request{SendMessage: *sendData})
+		// 根据 chunkServer 的返回码来输出信息
+		switch chunkServerReply.StatusCode {
+		case "0":
+			logger.Message("Response from chunkServer: " + chunkServerReply.ReplyMessage)
+		default:
+			logger.Warn(chunkServerReply.ReplyMessage)
+		}
 	}
 
 }
@@ -91,10 +98,41 @@ func ListFiles(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *conte
 // WriteFile 客户端展示文件
 func WriteFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string, data *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + *data})
+	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + *data})
 	switch masterServerReply.StatusCode {
 	case "0":
 		logger.Message(masterServerReply.ReplyMessage)
+		result := strings.Split(masterServerReply.ReplyMessage, "|")
+		// 切片第一个是空，直接移除
+		result = result[1:]
+		size := len(result)
+		// 定义变量存放切片中的数据
+		var ports []string
+		chunkHandle := ""
+		for i := 0; i < size; i++ {
+			if i%4 == 0 {
+				dataStart := i / 4 * 64
+				dataSize := 64
+				chunkHandle = result[i]
+				ports = append(ports, result[i+1], result[i+2], result[i+3])
+				for portId := 0; portId < len(ports); portId++ {
+					chunkServerSocket := "127.0.0.1:" + ports[portId]
+					command := "write"
+					sendData := ""
+					if dataStart < len(*data) {
+						if dataStart+dataSize < len(*data) {
+							sendData = chunkHandle + "|" + (*data)[dataStart:dataStart+dataSize]
+						} else {
+							sendData = chunkHandle + "|" + (*data)[dataStart:len(*data)]
+						}
+					}
+					// 转向与 ChunkServer 交互
+					SwitchChunkServer(&chunkServerSocket, &command, &sendData)
+				}
+				// 优雅的清空切片
+				ports = ports[0:0]
+			}
+		}
 	default:
 		logger.Warn(masterServerReply.ReplyMessage)
 	}
