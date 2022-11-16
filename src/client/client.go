@@ -1,11 +1,14 @@
 package client
 
 import (
+	cm "GeekGFS/src/common"
 	"GeekGFS/src/pb"
 	"context"
+	"fmt"
 	"github.com/sadlil/gologger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -66,6 +69,24 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *str
 			logger.Warn(chunkServerReply.ReplyMessage)
 		}
 		return chunkServerReply.ReplyMessage
+	case "getChunkSpace":
+		chunkServerReply, _ := clientForCS.GetChunkSpace(clientForCSCtx, &pb.Request{SendMessage: *sendData})
+		switch chunkServerReply.StatusCode {
+		case "0":
+			logger.Message("Response from chunkServer: " + chunkServerReply.ReplyMessage)
+		default:
+			logger.Warn(chunkServerReply.ReplyMessage)
+		}
+		return chunkServerReply.ReplyMessage
+	case "append":
+		chunkServerReply, _ := clientForCS.Append(clientForCSCtx, &pb.Request{SendMessage: *sendData})
+		switch chunkServerReply.StatusCode {
+		case "0":
+			logger.Message("Response from chunkServer: " + chunkServerReply.ReplyMessage)
+		default:
+			logger.Warn(chunkServerReply.ReplyMessage)
+		}
+		return ""
 	default:
 		logger.Warn("No this command")
 		return ""
@@ -188,6 +209,36 @@ func AppendFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *cont
 	switch masterServerReply.StatusCode {
 	case "0":
 		logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
+		result := strings.Split(masterServerReply.ReplyMessage, "|")
+		// 切片第一个是空，直接移除
+		result = result[1:]
+		latestChunkHandle := result[0]
+		// 向 chunkServer 询问 这个chunk 还有多少空间
+		chunkServerSocket := "127.0.0.1:" + result[1]
+		command := "getChunkSpace"
+		existSizeString := SwitchChunkServer(&chunkServerSocket, &command, &latestChunkHandle)
+		existSize, err := strconv.Atoi(existSizeString)
+		if err != nil {
+			return
+		}
+		fmt.Println(existSize)
+		availableSize := cm.GFSChunkSize - existSize
+		fmt.Println(availableSize)
+		// 看看我要追加的数据有多大
+		dataSize := len(*data)
+		// 如果我的数据比可用的小，那么我直接追加就可以了
+		if dataSize <= availableSize {
+			for i := 1; i < len(result); i++ {
+				chunkServerSocket_ := "127.0.0.1:" + result[i]
+				command_ := "append"
+				sendData := latestChunkHandle + "|" + *data
+				SwitchChunkServer(&chunkServerSocket_, &command_, &sendData)
+			}
+		} else {
+			// todo：***
+			// 如果我的数据比可用的大，我追加完成之后需要再创建新的，直至追加完毕
+		}
+
 	default:
 		logger.Warn(masterServerReply.ReplyMessage)
 	}

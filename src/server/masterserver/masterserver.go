@@ -252,9 +252,41 @@ func (ms *MasterServer) readFile(filePath *string, data *string, statusCode *cm.
 	statusCode.Exception = "SUCCESS: file " + *filePath + "is read"
 }
 
-// AppendFile todo
+// AppendFile 追加文件
 func (ms *MasterServer) AppendFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
-	return &pb.Reply{ReplyMessage: "1", StatusCode: "1"}, nil
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	// 分割串
+	slice := strings.Split(req.SendMessage, "|")
+	filePath := slice[0]
+	data := slice[1]
+	logger.Message("Command AppendFile " + data + "to " + filePath)
+	// 定义变量，传进去
+	var statusCode cm.StatusCode
+	var locations []string
+	// 得到最后一块 chunkHandle
+	lastChunkHandle := ms.metadata.GetLatestChunkHandle(&filePath)
+	// 核心逻辑
+	ms.appendFile(&filePath, &lastChunkHandle, &locations, &statusCode)
+	// 返回信息给客户端
+	if statusCode.Value != "0" {
+		return &pb.Reply{ReplyMessage: statusCode.Exception, StatusCode: statusCode.Value}, nil
+	}
+	reply := lastChunkHandle
+	for _, location := range locations {
+		reply = reply + "|" + location
+	}
+	return &pb.Reply{ReplyMessage: reply, StatusCode: statusCode.Value}, nil
+}
+
+// appendFile 核心逻辑
+func (ms *MasterServer) appendFile(filePath *string, lastChunkHandle *string, locations *[]string, statusCode *cm.StatusCode) {
+	files := ms.metadata.GetFiles()
+	file := (*files)[*filePath]
+	chunks := file.GetChunks()
+	chunk := (*chunks)[*lastChunkHandle]
+	*locations = chunk.locations
+	statusCode.Value = "0"
+	statusCode.Exception = "SUCCESS: file " + *filePath + " last chunk get"
 }
 
 // CreateChunk todo
