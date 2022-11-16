@@ -24,6 +24,7 @@ func printUsage() {
 	logger.Info("  list filePath")
 	logger.Info(" write filePath data")
 	logger.Info("  read filePath")
+	logger.Info("append filePath data")
 }
 
 func main() {
@@ -84,6 +85,16 @@ func main() {
 			logger.Warn("Read at least needs 3 arguments")
 		}
 		cl.ReadFile(&clientForMS, &clientForMSCtx, &filePath)
+	case "append":
+		if len(os.Args) < 4 {
+			logger.Warn("Append at least needs 3 arguments")
+			return
+		}
+		data := os.Args[3]
+		for i := 4; i < len(os.Args); i++ {
+			data = data + " " + os.Args[i]
+		}
+		cl.AppendFile(&clientForMS, &clientForMSCtx, &filePath, &data)
 	default:
 		printUsage()
 	}

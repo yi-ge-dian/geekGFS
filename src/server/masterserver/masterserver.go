@@ -126,7 +126,6 @@ func (ms *MasterServer) listFiles(filePath *string, filePaths *[]string) {
 // WriteFile 写文件
 func (ms *MasterServer) WriteFile(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	fmt.Println(req.SendMessage)
 	// 分割串
 	slice := strings.Split(req.SendMessage, "|")
 	filePath := slice[0]
@@ -232,6 +231,7 @@ func (ms *MasterServer) ReadFile(ctx context.Context, req *pb.Request) (*pb.Repl
 	return &pb.Reply{ReplyMessage: data, StatusCode: statusCode.Value}, nil
 }
 
+// readFile 核心逻辑
 func (ms *MasterServer) readFile(filePath *string, data *string, statusCode *cm.StatusCode) {
 	ms.checkValidFile(filePath, statusCode)
 	if statusCode.Value != "0" {
@@ -245,7 +245,8 @@ func (ms *MasterServer) readFile(filePath *string, data *string, statusCode *cm.
 	for _, chunkHandle := range file.chunkHandleSet {
 		chunk := (*chunks)[chunkHandle]
 		// 得到 chunk 存放的任意一个位置
-		*data = *data + "|" + chunkHandle + chunk.locations[0]
+		fmt.Println(chunk.locations)
+		*data = *data + "|" + chunkHandle + "|" + chunk.locations[0]
 	}
 	statusCode.Value = "0"
 	statusCode.Exception = "SUCCESS: file " + *filePath + "is read"

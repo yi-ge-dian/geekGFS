@@ -13,4 +13,7 @@ macos  or unix
 ./main create "/home/dwl/1.txt"
 ./main create "/home/dwl/2.txt"
 ./main list "/home"
+./main list "/home/1.txt"
 ./main write "/home/1.txt" 0123456789012345678901234567890123456789012345678901234567890123
+./main write "/home/1.txt" a b c d e
+./main read "/home/1.txt"

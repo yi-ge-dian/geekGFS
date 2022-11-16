@@ -13,7 +13,7 @@ import (
 //************************************辅助函数************************************
 
 // SwitchChunkServer client 与 chunkServer 建立连接,并且执行逻辑
-func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *string) {
+func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *string) string {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 
 	// 1. 建立连接，端口是服务端开放的端口 没有证书会报错
@@ -46,6 +46,7 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *str
 		default:
 			logger.Warn(chunkServerReply.ReplyMessage)
 		}
+		return ""
 	case "write":
 		chunkServerReply, _ := clientForCS.Write(clientForCSCtx, &pb.Request{SendMessage: *sendData})
 		// 根据 chunkServer 的返回码来输出信息
@@ -55,7 +56,19 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *str
 		default:
 			logger.Warn(chunkServerReply.ReplyMessage)
 		}
+		return ""
 	case "read":
+		chunkServerReply, _ := clientForCS.Read(clientForCSCtx, &pb.Request{SendMessage: *sendData})
+		switch chunkServerReply.StatusCode {
+		case "0":
+			logger.Message("Response from chunkServer: " + chunkServerReply.ReplyMessage)
+		default:
+			logger.Warn(chunkServerReply.ReplyMessage)
+		}
+		return chunkServerReply.ReplyMessage
+	default:
+		logger.Warn("No this command")
+		return ""
 	}
 
 }
@@ -96,10 +109,11 @@ func ListFiles(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *conte
 	}
 }
 
-// WriteFile 客户端展示文件
+// WriteFile 客户端写文件
 func WriteFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string, data *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + *data})
+	// 根据 masterServer 的返回码来输出信息
 	switch masterServerReply.StatusCode {
 	case "0":
 		logger.Message(masterServerReply.ReplyMessage)
@@ -139,10 +153,37 @@ func WriteFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *conte
 	}
 }
 
-// ReadFile 读取文件
+// ReadFile 客户端读文件
 func ReadFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath})
+	masterServerReply, _ := (*clientForMS).ReadFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath})
+	// 根据 masterServer 的返回码来输出信息
+	switch masterServerReply.StatusCode {
+	case "0":
+		logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
+		result := strings.Split(masterServerReply.ReplyMessage, "|")
+		// 切片第一个是空，直接移除
+		result = result[1:]
+		size := len(result)
+		data := ""
+		for i := 0; i < size; i = i + 2 {
+			command := "read"
+			chunkHandle := result[i]
+			location := result[i+1]
+			chunkServerSocket := "127.0.0.1:" + location
+			messageFromChunkServer := SwitchChunkServer(&chunkServerSocket, &command, &chunkHandle)
+			data = data + messageFromChunkServer
+			logger.Message("Response from chunkServer, all data = " + data)
+		}
+	default:
+		logger.Warn(masterServerReply.ReplyMessage)
+	}
+}
+
+// AppendFile 客户端追加文件
+func AppendFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string, data *string) {
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + *data})
 	// 根据 masterServer 的返回码来输出信息
 	switch masterServerReply.StatusCode {
 	case "0":
