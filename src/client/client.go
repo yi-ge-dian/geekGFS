@@ -4,7 +4,6 @@ import (
 	cm "GeekGFS/src/common"
 	"GeekGFS/src/pb"
 	"context"
-	"fmt"
 	"github.com/sadlil/gologger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -213,16 +212,13 @@ func AppendFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *cont
 		latestChunkHandle := result[0]
 		// 向 chunkServer 询问 这个chunk 还有多少空间
 		chunkServerSocket := "127.0.0.1:" + result[1]
-		fmt.Println(result)
 		command := "getChunkSpace"
 		existSizeString := SwitchChunkServer(&chunkServerSocket, &command, &latestChunkHandle)
 		existSize, err := strconv.Atoi(existSizeString)
 		if err != nil {
 			return
 		}
-		fmt.Println(existSize)
 		availableSize := cm.GFSChunkSize - existSize
-		fmt.Println(availableSize)
 		// 看看我要追加的数据有多大
 		dataSize := len(*data)
 		// 如果我的数据比可用的小，那么我直接追加就可以了
