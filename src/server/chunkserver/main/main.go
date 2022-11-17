@@ -20,7 +20,7 @@ func StartChunkServer(chunkServerLocation *string, done func()) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	// 1. chunkServer配置
 	chunkServerSocket := "127.0.0.1:" + *chunkServerLocation
-	chunkServer := cs.NewChunkServer(chunkServerLocation, cm.GFSChunkServerRoot)
+	chunkServer := cs.NewChunkServer(chunkServerLocation, cm.GFSChunkServer)
 
 	// 2. grpc服务器
 	s := grpc.NewServer()

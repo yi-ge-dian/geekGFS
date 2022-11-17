@@ -1,18 +1,18 @@
 package masterserver
 
 type File struct {
-	filePath       string            // 文件路径（命名空间）
-	chunks         map[string]*Chunk // key:chunkHandle value:Chunk
-	chunkHandleSet []string          // 存储chunkHandle的集合
-}
-
-func (f *File) GetChunks() *map[string]*Chunk {
-	return &f.chunks
+	FilePath       string            `json:"filePath"`       // 文件路径（命名空间）
+	Chunks         map[string]*Chunk `json:"chunks"`         // key:chunkHandle value:Chunk
+	ChunkHandleSet []string          `json:"chunkHandleSet"` // 存储chunkHandle的集合
 }
 
 func NewFile(filePath *string) *File {
 	return &File{
-		filePath: *filePath,
-		chunks:   make(map[string]*Chunk, 0),
+		FilePath: *filePath,
+		Chunks:   make(map[string]*Chunk, 0),
 	}
+}
+
+func (f *File) GetChunks() *map[string]*Chunk {
+	return &f.Chunks
 }

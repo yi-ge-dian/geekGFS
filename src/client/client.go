@@ -13,9 +13,9 @@ import (
 	"time"
 )
 
-//************************************辅助函数************************************
+//************************************与 Chunk Server 交互**************************************************************
 
-// SwitchChunkServer client 与 chunkServer 建立连接,并且执行逻辑
+// SwitchChunkServer 逻辑转交给 chunkServer
 func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *string) string {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 
@@ -27,7 +27,7 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *str
 	logger.Info("Client connected chunkServer at " + *chunkServerSocket)
 	// 退出时关闭链接
 	defer func(conn *grpc.ClientConn) {
-		err := conn.Close()
+		err = conn.Close()
 		if err != nil {
 			logger.Error("Failed to close the connection" + err.Error())
 		}
@@ -94,7 +94,7 @@ func SwitchChunkServer(chunkServerSocket *string, command *string, sendData *str
 
 }
 
-//************************************业务函数************************************
+//************************************与 Master Server 交互**************************************************************
 
 // CreateFile 客户端创建文件
 func CreateFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string) {
@@ -204,17 +204,16 @@ func ReadFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *contex
 // AppendFile 客户端追加文件
 func AppendFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string, data *string) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
-	masterServerReply, _ := (*clientForMS).WriteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + *data})
+	masterServerReply, _ := (*clientForMS).AppendFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + *data})
 	// 根据 masterServer 的返回码来输出信息
 	switch masterServerReply.StatusCode {
 	case "0":
 		logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
 		result := strings.Split(masterServerReply.ReplyMessage, "|")
-		// 切片第一个是空，直接移除
-		result = result[1:]
 		latestChunkHandle := result[0]
 		// 向 chunkServer 询问 这个chunk 还有多少空间
 		chunkServerSocket := "127.0.0.1:" + result[1]
+		fmt.Println(result)
 		command := "getChunkSpace"
 		existSizeString := SwitchChunkServer(&chunkServerSocket, &command, &latestChunkHandle)
 		existSize, err := strconv.Atoi(existSizeString)
@@ -235,10 +234,63 @@ func AppendFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *cont
 				SwitchChunkServer(&chunkServerSocket_, &command_, &sendData)
 			}
 		} else {
-			// todo：***
 			// 如果我的数据比可用的大，我追加完成之后需要再创建新的，直至追加完毕
+			// 1. 先追加剩下的
+			data1 := (*data)[0:availableSize]
+			*data = (*data)[availableSize:]
+			for i := 1; i < len(result); i++ {
+				chunkServerSocket_ := "127.0.0.1:" + result[i]
+				command_ := "append"
+				sendData := latestChunkHandle + "|" + data1
+				SwitchChunkServer(&chunkServerSocket_, &command_, &sendData)
+			}
+			// 2. 再搞剩下的
+			// 2.1 看看还需要搞多少次， 搞了那么多次以后是否有空余
+			num := len(*data) / cm.GFSChunkSize
+			rem := len(*data) % cm.GFSChunkSize
+			// 2.2 先弄整数次
+			for i := 0; i < num; i++ {
+				data2 := (*data)[0:cm.GFSChunkSize]
+				*data = (*data)[cm.GFSChunkSize:]
+				masterServerReply, _ = (*clientForMS).CreateChunk(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + latestChunkHandle})
+				logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
+				result_ := strings.Split(masterServerReply.ReplyMessage, "|")
+				chunkHandle := result_[0]
+				for j := 1; j < len(result_); j++ {
+					chunkServerSocket__ := "127.0.0.1:" + result_[j]
+					command__ := "append"
+					sendData := chunkHandle + "|" + data2
+					SwitchChunkServer(&chunkServerSocket__, &command__, &sendData)
+				}
+			}
+			// 2.3 再弄剩下的
+			if rem > 0 {
+				data3 := (*data)[0:rem]
+				masterServerReply, _ = (*clientForMS).CreateChunk(*clientForMSCtx, &pb.Request{SendMessage: *filePath + "|" + latestChunkHandle})
+				logger.Message("Response from masterServer: " + masterServerReply.ReplyMessage)
+				result_ := strings.Split(masterServerReply.ReplyMessage, "|")
+				chunkHandle := result_[0]
+				for j := 1; j < len(result_); j++ {
+					chunkServerSocket__ := "127.0.0.1:" + result_[j]
+					command__ := "append"
+					sendData := chunkHandle + "|" + data3
+					SwitchChunkServer(&chunkServerSocket__, &command__, &sendData)
+				}
+			}
 		}
+	default:
+		logger.Warn(masterServerReply.ReplyMessage)
+	}
+}
 
+// DeleteFile 客户端删除文件
+func DeleteFile(clientForMS *pb.MasterServerToClientClient, clientForMSCtx *context.Context, filePath *string) {
+	// 软删除，只需 master 删除
+	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
+	masterServerReply, _ := (*clientForMS).DeleteFile(*clientForMSCtx, &pb.Request{SendMessage: *filePath})
+	switch masterServerReply.StatusCode {
+	case "0":
+		logger.Message("Response from masterServer:" + masterServerReply.ReplyMessage)
 	default:
 		logger.Warn(masterServerReply.ReplyMessage)
 	}

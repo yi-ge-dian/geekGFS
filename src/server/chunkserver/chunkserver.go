@@ -5,6 +5,7 @@ import (
 	"GeekGFS/src/pb"
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/sadlil/gologger"
 	"io"
 	"os"
@@ -18,7 +19,7 @@ type ChunkServer struct {
 	root string
 }
 
-// ************************************辅助函数************************************'
+// ************************************ 辅助函数 ************************************************************************
 
 func NewChunkServer(port *string, root string) *ChunkServer {
 	var cs ChunkServer
@@ -38,7 +39,7 @@ func CheckFileExist(path string) bool {
 
 // OpenFileWithCreate 打开文件(没有就创建)
 func (cs *ChunkServer) OpenFileWithCreate(filePath *string, statusCode *cm.StatusCode) *os.File {
-	file, err := os.OpenFile(*filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(*filePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		statusCode.Value = "-1"
 		statusCode.Exception = "ERROR: " + err.Error()
@@ -49,7 +50,7 @@ func (cs *ChunkServer) OpenFileWithCreate(filePath *string, statusCode *cm.Statu
 
 // OpenFileWithAppend 打开文件(已经存在，想要追加)
 func (cs *ChunkServer) OpenFileWithAppend(filePath *string, statusCode *cm.StatusCode) *os.File {
-	file, err := os.OpenFile(*filePath, os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(*filePath, os.O_RDWR|os.O_APPEND, 0666)
 	if err != nil {
 		statusCode.Value = "-1"
 		statusCode.Exception = "ERROR: " + err.Error()
@@ -61,13 +62,19 @@ func (cs *ChunkServer) OpenFileWithAppend(filePath *string, statusCode *cm.Statu
 // ReadFile 读取文件
 func (cs *ChunkServer) ReadFile(file *os.File, data *string, statusCode *cm.StatusCode) {
 	reader := bufio.NewReader(file)
+	chunks := make([]byte, 0)
+	buf := make([]byte, 1024)
 	for {
-		str, err := reader.ReadString('\n')
-		if err == io.EOF {
+		n, err := reader.Read(buf)
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
+		if 0 == n {
 			break
 		}
-		*data = str
+		chunks = append(chunks, buf[:n]...)
 	}
+	*data = string(chunks)
 }
 
 // WriteFile 写文件
@@ -89,13 +96,13 @@ func (cs *ChunkServer) WriteFile(file *os.File, data *string, statusCode *cm.Sta
 	}
 }
 
-// ************************************业务函数************************************
+// ************************************ 业务函数 *************************************************************************
 
 // Create 创建
 func (cs *ChunkServer) Create(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	chunkHandle := req.SendMessage
-	logger.Message(cs.port + "Create Chunk " + chunkHandle)
+	logger.Message(cs.port + " Create Chunk " + chunkHandle)
 	// 定义变量，传进去
 	var statusCode cm.StatusCode
 	// 核心逻辑
@@ -126,7 +133,7 @@ func (cs *ChunkServer) Write(ctx context.Context, req *pb.Request) (*pb.Reply, e
 	slice := strings.Split(req.SendMessage, "|")
 	chunkHandle := slice[0]
 	data := slice[1]
-	logger.Message(cs.port + "Write Chunk " + data + " to " + chunkHandle)
+	logger.Message(cs.port + " Write Chunk " + data + " to " + chunkHandle)
 	// 定义变量，传进去
 	var statusCode cm.StatusCode
 	// 核心逻辑
@@ -164,7 +171,7 @@ func (cs *ChunkServer) write(chunkHandle *string, data *string, statusCode *cm.S
 func (cs *ChunkServer) Read(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
 	logger := gologger.GetLogger(gologger.CONSOLE, gologger.ColoredLog)
 	chunkHandle := req.SendMessage
-	logger.Message(cs.port + " Read data from" + chunkHandle)
+	logger.Message(cs.port + " Read data from " + chunkHandle)
 	// 定义变量传进去
 	data := ""
 	var statusCode cm.StatusCode
@@ -195,7 +202,9 @@ func (cs *ChunkServer) read(chunkHandle *string, data *string, statusCode *cm.St
 		}
 	}(file)
 	// 读取文件
+	fmt.Println(file)
 	cs.ReadFile(file, data, statusCode)
+	fmt.Println(*data)
 	statusCode.Value = "0"
 	statusCode.Exception = "SUCCESS: " + cs.port + " read data from " + *chunkHandle
 }

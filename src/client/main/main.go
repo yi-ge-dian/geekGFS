@@ -25,6 +25,7 @@ func printUsage() {
 	logger.Info(" write filePath data")
 	logger.Info("  read filePath")
 	logger.Info("append filePath data")
+	logger.Info("delete filePath")
 }
 
 func main() {
@@ -82,7 +83,7 @@ func main() {
 		cl.WriteFile(&clientForMS, &clientForMSCtx, &filePath, &data)
 	case "read":
 		if len(os.Args) != 3 {
-			logger.Warn("Read at least needs 3 arguments")
+			logger.Warn("Read only needs 3 arguments")
 		}
 		cl.ReadFile(&clientForMS, &clientForMSCtx, &filePath)
 	case "append":
@@ -95,6 +96,11 @@ func main() {
 			data = data + " " + os.Args[i]
 		}
 		cl.AppendFile(&clientForMS, &clientForMSCtx, &filePath, &data)
+	case "delete":
+		if len(os.Args) != 3 {
+			logger.Warn("Read only needs 3 arguments")
+		}
+		cl.DeleteFile(&clientForMS, &clientForMSCtx, &filePath)
 	default:
 		printUsage()
 	}

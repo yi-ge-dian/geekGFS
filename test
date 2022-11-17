@@ -18,3 +18,6 @@ macos  or unix
 ./main write "/home/1.txt" a b c d e
 ./main read "/home/1.txt"
 ./main append "/home/1.txt" a b c d e
+./main append "/home/1.txt" 0123456789012345678901234567890123456789012345678901234567890123
+./main delete "/home/1.txt"
+

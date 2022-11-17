@@ -8,8 +8,8 @@ type StatusCode struct {
 }
 
 const (
-	GFSChunkSize       = 64
-	GFSChunkServerRoot = "RootChunkServer"
+	GFSChunkSize   = 64
+	GFSChunkServer = "ChunkServer"
 )
 
 var (
