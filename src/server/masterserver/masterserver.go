@@ -392,7 +392,7 @@ func (ms *MasterServer) Storage() {
 		return
 	}
 	// 打开文件
-	dirPath := "./MasterServer/" + ms.Port
+	dirPath := "./MasterServer/" + "3001"
 	err = os.MkdirAll(dirPath, os.ModePerm)
 	if err != nil {
 		logger.Warn(err.Error())

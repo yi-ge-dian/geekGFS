@@ -3,6 +3,3 @@ gen:
 
 clean:
 	rm -f ../pb/*.go
-
-cleanRootChunkServer:
-	rm -rf ../../RootChunkServer/*
